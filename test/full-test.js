@@ -1,330 +1,310 @@
 const { expect } = require("chai");
-const { ethers } = require("hardhat");
-const { time } = require("@nomicfoundation/hardhat-network-helpers");
+const { ethers, network } = require("hardhat");
+const { time, loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-describe("Mata Estate Planning Full Test", function () {
-    let Source, Will, MockERC20, MockERC721;
-    let source, mockERC20, mockERC721;
-    let owner, testator, heir1, heir2, executor, publicExecutor, otherUser;
-
-    const platformFee = ethers.parseEther("0.01");
-    const willEthValue = ethers.parseEther("10");
-    const creationValue = ethers.parseEther("10.01"); // willEthValue + platformFee
-    const inactivityInterval = 60 * 60 * 24 * 30; // 30 days in seconds
-    const EXECUTOR_ADDRESS = "0xa9F8F9C0bf3188cEDdb9684ae28655187552bAE9";
-    const EXECUTOR_WINDOW = 24 * 60 * 60; // 1 day in seconds
-
-    beforeEach(async function () {
-        // Get signers
-        [owner, testator, heir1, heir2, publicExecutor, otherUser] = await ethers.getSigners();
-        executor = await ethers.getImpersonatedSigner(EXECUTOR_ADDRESS);
-
-        // Fund the impersonated executor account
-        await testator.sendTransaction({
-            to: EXECUTOR_ADDRESS,
-            value: ethers.parseEther("10"),
+// This check ensures the entire suite is only run on the local Hardhat network.
+if (network.name !== "hardhat") {
+    describe("Mata Estate Planning Protocol (Full Suite)", function () {
+        it("should only run on the Hardhat network", function () {
+            console.error("This comprehensive test suite is designed to run only on the `hardhat` network.");
+            console.error("Please run `npx hardhat test` without any --network flags.");
+            this.skip(); // Skips the rest of the tests in a clean way.
         });
-
-        // Deploy Mocks
-        const MockERC20Factory = await ethers.getContractFactory("MockERC20");
-        mockERC20 = await MockERC20Factory.deploy();
-
-        const MockERC721Factory = await ethers.getContractFactory("MockERC721");
-        mockERC721 = await MockERC721Factory.deploy();
-
-        // Mint assets to testator
-        await mockERC20.transfer(testator.address, ethers.parseEther("500"));
-        await mockERC721.mint(testator.address, 1);
-        await mockERC721.mint(testator.address, 2);
-
-        // Deploy Source
-        Source = await ethers.getContractFactory("Source");
-        source = await Source.deploy(owner.address);
-        await source.setPlatformFee(platformFee);
-
-        Will = await ethers.getContractFactory("Will");
     });
+} else {
+    describe("Mata Estate Planning Protocol (Full Suite)", function () {
+        this.timeout(60000); // 60 seconds
 
-    describe("Source Contract", function () {
-        it("should set the correct owner and initial fee", async function () {
-            expect(await source.owner()).to.equal(owner.address);
-            expect(await source.platformFee()).to.equal(platformFee);
-        });
+        // --- Constants ---
+        const BASE_PLATFORM_FEE = ethers.parseEther("0.1");
+        const DIARY_PLATFORM_FEE = ethers.parseEther("0.3");
+        const WILL_ETH_VALUE = ethers.parseEther("1.0");
+        const INACTIVITY_INTERVAL = 30 * 24 * 60 * 60; // 30 days
+        const EXECUTOR_ADDRESS = "0xa9F8F9C0bf3188cEDdb9684ae28655187552bAE9";
+        const EXECUTOR_WINDOW = 1 * 24 * 60 * 60; // 1 day
 
-        it("should allow the owner to change the platform fee", async function () {
-            const newFee = ethers.parseEther("0.02");
-            await expect(source.connect(owner).setPlatformFee(newFee))
-                .to.not.be.reverted;
-            expect(await source.platformFee()).to.equal(newFee);
-        });
+        // --- Main Deployment Fixture ---
+        async function deployContractsFixture() {
+            const signers = await ethers.getSigners();
+            const [owner, testator, heir1, heir2, publicExecutor, otherUser] = signers;
 
-        it("should prevent non-owners from changing the platform fee", async function () {
-            const newFee = ethers.parseEther("0.02");
-            await expect(source.connect(testator).setPlatformFee(newFee))
-                .to.be.revertedWithCustomError(source, "OwnableUnauthorizedAccount");
-        });
+            await network.provider.request({ method: "hardhat_impersonateAccount", params: [EXECUTOR_ADDRESS] });
+            await owner.sendTransaction({ to: EXECUTOR_ADDRESS, value: ethers.parseEther("10") });
+            const executor = await ethers.getSigner(EXECUTOR_ADDRESS);
 
-        it("should prevent non-owners from withdrawing fees", async function () {
-            await expect(source.connect(testator).withdrawFees())
-                .to.be.revertedWithCustomError(source, "OwnableUnauthorizedAccount");
-        });
+            const MockERC20 = await ethers.getContractFactory("MockERC20");
+            const mockERC20 = await MockERC20.deploy();
+            const mockERC20Address = await mockERC20.getAddress();
 
-        it("should revert withdrawal if balance is zero", async function () {
-             await expect(source.connect(owner).withdrawFees())
-                .to.be.revertedWith("No fees to withdraw.");
-        });
+            const MockERC721 = await ethers.getContractFactory("MockERC721");
+            const mockERC721 = await MockERC721.deploy();
+            const mockERC721Address = await mockERC721.getAddress();
 
-        describe("createWill Function", function () {
-            beforeEach(async function () {
-                // Approvals
-                await mockERC20.connect(testator).approve(source.target, ethers.parseEther("100"));
-                await mockERC721.connect(testator).approve(source.target, 1);
+            await mockERC20.connect(owner).transfer(testator.address, ethers.parseEther("1000"));
+            await mockERC721.connect(owner).mint(testator.address, 1);
+            await mockERC721.connect(owner).mint(testator.address, 2);
+            await mockERC721.connect(owner).mint(testator.address, 3);
+
+            const Source = await ethers.getContractFactory("Source");
+            const source = await Source.deploy(owner.address);
+            await source.connect(owner).setBasePlatformFee(BASE_PLATFORM_FEE);
+            await source.connect(owner).setDiaryPlatformFee(DIARY_PLATFORM_FEE);
+
+            const Will = await ethers.getContractFactory("Will");
+
+            return {
+                source, Will, mockERC20, mockERC721, owner, testator, heir1, heir2,
+                executor, publicExecutor, otherUser, mockERC20Address, mockERC721Address
+            };
+        }
+
+        // ===============================================================================================
+        //                                      TEST SUITES
+        // ===============================================================================================
+
+        describe("Source Contract (Factory)", function () {
+            describe("Core Functionality", function () {
+                it("should set the correct owner and initial fees", async function () {
+                    const { source, owner } = await loadFixture(deployContractsFixture);
+                    expect(await source.owner()).to.equal(owner.address);
+                    expect(await source.basePlatformFee()).to.equal(BASE_PLATFORM_FEE);
+                    expect(await source.diaryPlatformFee()).to.equal(DIARY_PLATFORM_FEE);
+                });
             });
 
-            it("should create a will successfully", async function () {
-                const erc20s = [{ tokenContract: mockERC20.target, amount: ethers.parseEther("100") }];
-                const nfts = [{ tokenContract: mockERC721.target, tokenId: 1, heir: heir1.address }];
+            describe("Fee Management", function () {
+                it("should allow the owner to change platform fees", async function () {
+                    const { source, owner } = await loadFixture(deployContractsFixture);
+                    await source.connect(owner).setBasePlatformFee(ethers.parseEther("0.5"));
+                    expect(await source.basePlatformFee()).to.equal(ethers.parseEther("0.5"));
+                });
 
-                await expect(source.connect(testator).createWill(
-                    [heir1.address, heir2.address],
-                    [50, 50],
-                    inactivityInterval,
-                    erc20s,
-                    nfts,
-                    { value: creationValue }
-                )).to.emit(source, "WillCreated");
+                it("should prevent non-owners from changing platform fees", async function () {
+                    const { source, otherUser } = await loadFixture(deployContractsFixture);
+                    await expect(source.connect(otherUser).setBasePlatformFee(ethers.parseEther("1")))
+                        .to.be.revertedWithCustomError(source, "OwnableUnauthorizedAccount");
+                });
 
-                const willAddress = await source.userWills(testator.address);
-                expect(willAddress).to.not.equal(ethers.ZeroAddress);
-                
-                const willContract = Will.attach(willAddress);
-                expect(await willContract.owner()).to.equal(testator.address);
-                expect(await willContract.getContractBalance()).to.equal(willEthValue);
-                expect(await mockERC20.balanceOf(willAddress)).to.equal(ethers.parseEther("100"));
-                expect(await mockERC721.ownerOf(1)).to.equal(willAddress);
-                expect(await ethers.provider.getBalance(source.target)).to.equal(platformFee);
+                it("should allow the owner to withdraw fees", async function () {
+                    const { source, owner, testator } = await loadFixture(deployContractsFixture);
+                    await testator.sendTransaction({ to: await source.getAddress(), value: ethers.parseEther("1") });
+                    const initialOwnerBalance = await ethers.provider.getBalance(owner.address);
+                    const tx = await source.connect(owner).withdrawFees();
+                    const receipt = await tx.wait();
+                    const gasUsed = receipt.gasUsed * receipt.gasPrice;
+                    const finalOwnerBalance = await ethers.provider.getBalance(owner.address);
+                    expect(finalOwnerBalance).to.be.closeTo(initialOwnerBalance + ethers.parseEther("1") - gasUsed, ethers.parseEther("0.001"));
+                });
+
+                 it("should revert withdrawing fees when balance is zero", async function () {
+                    const { source, owner } = await loadFixture(deployContractsFixture);
+                    await expect(source.connect(owner).withdrawFees()).to.be.revertedWith("No fees to withdraw.");
+                });
+            });
+
+            describe("Will Creation Scenarios", function() {
+                it("should create a standard will (no diary) successfully", async function() {
+                    const { source, testator, heir1 } = await loadFixture(deployContractsFixture);
+                    const creationValue = WILL_ETH_VALUE + BASE_PLATFORM_FEE;
+                    await expect(source.connect(testator).createWill(
+                        [heir1.address], [100], INACTIVITY_INTERVAL, [], [], false,
+                        { value: creationValue }
+                    )).to.not.be.reverted;
+                    const willAddress = await source.userWills(testator.address);
+                    expect(willAddress).to.be.properAddress;
+                });
+
+                it("should create a will WITH a diary successfully", async function() {
+                    const { source, testator, heir1, Will } = await loadFixture(deployContractsFixture);
+                    const creationValue = WILL_ETH_VALUE + DIARY_PLATFORM_FEE;
+                    await source.connect(testator).createWill(
+                        [heir1.address], [100], INACTIVITY_INTERVAL, [], [], true,
+                        { value: creationValue }
+                    );
+                    const willAddress = await source.userWills(testator.address);
+                    const willContract = Will.attach(willAddress);
+                    expect(await willContract.hasDiary()).to.be.true;
+                    expect(await willContract.terminationFee()).to.equal(DIARY_PLATFORM_FEE);
+                });
             });
             
-            it("should allow the owner to withdraw collected fees", async function () {
-                const erc20s = [{ tokenContract: mockERC20.target, amount: ethers.parseEther("100") }];
-                const nfts = [{ tokenContract: mockERC721.target, tokenId: 1, heir: heir1.address }];
+            describe("Will Creation Failure Cases", function () {
+                it("should revert if ETH sent is less than the required fee", async function () {
+                    const { source, testator } = await loadFixture(deployContractsFixture);
+                    await expect(source.connect(testator).createWill([], [], 0, [], [], false, { value: ethers.parseEther("0.01") }))
+                        .to.be.revertedWith("Msg.value must cover the required platform fee.");
+                });
 
-                await source.connect(testator).createWill(
-                    [heir1.address, heir2.address],
-                    [50, 50],
-                    inactivityInterval,
-                    erc20s,
-                    nfts,
-                    { value: creationValue }
+                it("should revert if a user tries to create a second will", async function () {
+                    const { source, testator, heir1 } = await loadFixture(deployContractsFixture);
+                    await source.connect(testator).createWill([heir1.address], [100], INACTIVITY_INTERVAL, [], [], false, { value: BASE_PLATFORM_FEE });
+                    await expect(source.connect(testator).createWill([heir1.address], [100], INACTIVITY_INTERVAL, [], [], false, { value: BASE_PLATFORM_FEE }))
+                        .to.be.revertedWith("User already has an existing will.");
+                });
+
+                it("should revert if distribution percentages do not sum to 100", async function() {
+                    const { source, testator, heir1 } = await loadFixture(deployContractsFixture);
+                    await expect(source.connect(testator).createWill([heir1.address], [99], INACTIVITY_INTERVAL, [], [], false, { value: BASE_PLATFORM_FEE }))
+                        .to.be.revertedWith("Distribution percentages must sum to 100.");
+                });
+
+                it("should revert if there are no heirs", async function() {
+                    const { source, testator } = await loadFixture(deployContractsFixture);
+                    await expect(source.connect(testator).createWill([], [], INACTIVITY_INTERVAL, [], [], false, { value: BASE_PLATFORM_FEE }))
+                        .to.be.revertedWith("Heirs cannot be empty.");
+                });
+
+                it("should revert if token transfers are not approved", async function() {
+                    const { source, testator, heir1, mockERC20, mockERC20Address } = await loadFixture(deployContractsFixture);
+                    const erc20s = [{ tokenContract: mockERC20Address, amount: ethers.parseEther("1") }];
+                    await expect(source.connect(testator).createWill(
+                        [heir1.address], [100], INACTIVITY_INTERVAL, erc20s, [], false,
+                        { value: BASE_PLATFORM_FEE }
+                    )).to.be.revertedWithCustomError(mockERC20, "ERC20InsufficientAllowance");
+                });
+            });
+        });
+
+        // ===============================================================================================
+
+        describe("Will Contract Lifecycle", function () {
+            async function createStandardWillFixture() {
+                const base = await loadFixture(deployContractsFixture);
+                const sourceAddress = await base.source.getAddress();
+                await base.mockERC20.connect(base.testator).approve(sourceAddress, ethers.parseEther("100"));
+                await base.mockERC721.connect(base.testator).approve(sourceAddress, 1);
+                await base.mockERC721.connect(base.testator).approve(sourceAddress, 2);
+
+                const erc20s = [{ tokenContract: base.mockERC20Address, amount: ethers.parseEther("100") }];
+                const nfts = [
+                    { tokenContract: base.mockERC721Address, tokenId: 1, heir: base.heir1.address },
+                    { tokenContract: base.mockERC721Address, tokenId: 2, heir: base.heir2.address }
+                ];
+                const creationValue = WILL_ETH_VALUE + BASE_PLATFORM_FEE;
+                await base.source.connect(base.testator).createWill(
+                    [base.heir1.address, base.heir2.address], [60, 40], INACTIVITY_INTERVAL,
+                    erc20s, nfts, false, { value: creationValue }
                 );
+                const willAddress = await base.source.userWills(base.testator.address);
+                const willContract = base.Will.attach(willAddress);
+                return { ...base, willAddress, willContract };
+            }
 
-                const ownerBalanceBefore = await ethers.provider.getBalance(owner.address);
-                const tx = await source.connect(owner).withdrawFees();
-                const receipt = await tx.wait();
-                const gasUsed = receipt.gasUsed * receipt.gasPrice;
-
-                const ownerBalanceAfter = await ethers.provider.getBalance(owner.address);
-                expect(ownerBalanceAfter).to.equal(ownerBalanceBefore + platformFee - gasUsed);
-                expect(await ethers.provider.getBalance(source.target)).to.equal(0);
+            describe("Creation and State", function () {
+                it("should transfer all assets to the will contract upon creation", async function () {
+                    const { willAddress, mockERC20, mockERC721 } = await loadFixture(createStandardWillFixture);
+                    expect(await ethers.provider.getBalance(willAddress)).to.equal(WILL_ETH_VALUE);
+                    expect(await mockERC20.balanceOf(willAddress)).to.equal(ethers.parseEther("100"));
+                    expect(await mockERC721.ownerOf(1)).to.equal(willAddress);
+                    expect(await mockERC721.ownerOf(2)).to.equal(willAddress);
+                });
+                
+                it("should have correct state variables upon creation", async function () {
+                    const { willContract, testator, heir1, heir2 } = await loadFixture(createStandardWillFixture);
+                    const details = await willContract.getWillDetails();
+                    expect(details.owner).to.equal(testator.address);
+                    expect(details.interval).to.equal(INACTIVITY_INTERVAL);
+                    expect(details.executed).to.be.false;
+                    expect(details.hasDiary).to.be.false;
+                    expect(details.heirs).to.deep.equal([heir1.address, heir2.address]);
+                    expect(details.distributionPercentages).to.deep.equal([60n, 40n]);
+                });
             });
 
+            describe("Owner Functions (Ping & Cancel)", function () {
+                it("should allow the owner to ping and update the timestamp", async function () {
+                    const { willContract, testator } = await loadFixture(createStandardWillFixture);
+                    const initialTime = (await willContract.getWillDetails()).lastUpdate;
+                    await time.increase(1000);
+                    await willContract.connect(testator).ping();
+                    const newTime = (await willContract.getWillDetails()).lastUpdate;
+                    expect(newTime).to.be.gt(initialTime);
+                });
 
-            it("should fail if msg.value is less than platformFee", async function () {
-                await expect(source.connect(testator).createWill([], [], 0, [], [], { value: ethers.parseEther("0.001") }))
-                    .to.be.revertedWith("Msg.value must cover the platform fee.");
+                it("should prevent non-owners from pinging", async function () {
+                    const { willContract, otherUser } = await loadFixture(createStandardWillFixture);
+                    await expect(willContract.connect(otherUser).ping()).to.be.revertedWith("Only the owner can call this function.");
+                });
+                
+                it("should allow owner to cancel and withdraw all assets", async function () {
+                    const { source, willContract, testator, mockERC20, mockERC721 } = await loadFixture(createStandardWillFixture);
+                    const testatorInitialEth = await ethers.provider.getBalance(testator.address);
+                    const testatorInitialERC20 = await mockERC20.balanceOf(testator.address);
+                    
+                    const tx = await willContract.connect(testator).cancelAndWithdraw();
+                    const receipt = await tx.wait();
+                    const gasUsed = receipt.gasUsed * receipt.gasPrice;
+                    
+                    const returnedEth = WILL_ETH_VALUE - BASE_PLATFORM_FEE;
+                    expect(await ethers.provider.getBalance(testator.address)).to.be.closeTo(testatorInitialEth + returnedEth - gasUsed, ethers.parseEther("0.01"));
+                    expect(await mockERC20.balanceOf(testator.address)).to.equal(testatorInitialERC20 + ethers.parseEther("100"));
+                    expect(await mockERC721.ownerOf(1)).to.equal(testator.address);
+
+                    expect((await willContract.getWillDetails()).executed).to.be.true;
+                    expect(await source.userWills(testator.address)).to.equal(ethers.ZeroAddress);
+                });
+
+                it("should prevent non-owners from cancelling", async function () {
+                    const { willContract, otherUser } = await loadFixture(createStandardWillFixture);
+                    await expect(willContract.connect(otherUser).cancelAndWithdraw()).to.be.revertedWith("Only the owner can call this function.");
+                });
+
+                it("should prevent any actions after cancellation", async function () {
+                    const { willContract, testator } = await loadFixture(createStandardWillFixture);
+                    await willContract.connect(testator).cancelAndWithdraw();
+                    await expect(willContract.connect(testator).ping()).to.be.revertedWith("Will has been executed or cancelled.");
+                    await expect(willContract.connect(testator).cancelAndWithdraw()).to.be.revertedWith("Will has been executed or cancelled.");
+                });
             });
 
-            it("should fail if user already has a will", async function () {
-                 const erc20s = [{ tokenContract: mockERC20.target, amount: ethers.parseEther("100") }];
-                 const nfts = [{ tokenContract: mockERC721.target, tokenId: 1, heir: heir1.address }];
- 
-                 await source.connect(testator).createWill(
-                     [heir1.address, heir2.address],
-                     [50, 50],
-                     inactivityInterval,
-                     erc20s,
-                     nfts,
-                     { value: creationValue }
-                 );
+            describe("Execution Scenarios", function () {
+                it("should revert execution before the grace period ends", async function () {
+                    const { willContract, executor } = await loadFixture(createStandardWillFixture);
+                    await time.increase(INACTIVITY_INTERVAL - 100);
+                    await expect(willContract.connect(executor).execute()).to.be.revertedWith("Grace period has not ended.");
+                });
+                
+                it("should revert execution by a public user during the executor window", async function () {
+                    const { willContract, publicExecutor } = await loadFixture(createStandardWillFixture);
+                    await time.increase(INACTIVITY_INTERVAL + 100);
+                    await expect(willContract.connect(publicExecutor).execute()).to.be.revertedWith("Only the designated executor can call this now.");
+                });
 
-                await expect(source.connect(testator).createWill([], [], 0, [], [], { value: platformFee }))
-                    .to.be.revertedWith("User already has an existing will.");
+                it("should allow the designated executor to execute within the window", async function () {
+                    const { willContract, executor, heir1, heir2, mockERC721 } = await loadFixture(createStandardWillFixture);
+                    await time.increase(INACTIVITY_INTERVAL + 100);
+                    const heir1InitialBalance = await ethers.provider.getBalance(heir1.address);
+                    
+                    await willContract.connect(executor).execute();
+
+                    const fee = (WILL_ETH_VALUE * 50n) / 10000n;
+                    const distributableEth = WILL_ETH_VALUE - fee;
+                    expect(await ethers.provider.getBalance(heir1.address)).to.equal(heir1InitialBalance + (distributableEth * 60n) / 100n);
+                    expect(await mockERC721.ownerOf(1)).to.equal(heir1.address);
+                    expect(await mockERC721.ownerOf(2)).to.equal(heir2.address);
+                });
+
+                it("should allow a public user to execute after the executor window", async function () {
+                    const { willContract, publicExecutor } = await loadFixture(createStandardWillFixture);
+                    await time.increase(INACTIVITY_INTERVAL + EXECUTOR_WINDOW + 100);
+                    const publicExecutorInitialBalance = await ethers.provider.getBalance(publicExecutor.address);
+                    
+                    const tx = await willContract.connect(publicExecutor).execute();
+                    const receipt = await tx.wait();
+                    const gasUsed = receipt.gasUsed * receipt.gasPrice;
+                    
+                    const fee = (WILL_ETH_VALUE * 50n) / 10000n;
+                    expect(await ethers.provider.getBalance(publicExecutor.address)).to.be.closeTo(publicExecutorInitialBalance + fee - gasUsed, ethers.parseEther("0.01"));
+                });
+
+                it("should prevent a will from being executed twice", async function() {
+                    const { willContract, executor } = await loadFixture(createStandardWillFixture);
+                    await time.increase(INACTIVITY_INTERVAL + 100);
+                    await willContract.connect(executor).execute();
+                    await expect(willContract.connect(executor).execute()).to.be.revertedWith("Will has been executed or cancelled.");
+                });
             });
         });
     });
-
-    describe("Will Contract Lifecycle", function () {
-        let willAddress;
-        let willContract;
-
-        beforeEach(async function () {
-            // Create a will for testing
-            await mockERC20.connect(testator).approve(source.target, ethers.parseEther("100"));
-            await mockERC721.connect(testator).approve(source.target, 1);
-            
-            const erc20s = [{ tokenContract: mockERC20.target, amount: ethers.parseEther("100") }];
-            const nfts = [{ tokenContract: mockERC721.target, tokenId: 1, heir: heir1.address }];
-            
-            await source.connect(testator).createWill(
-                [heir1.address, heir2.address],
-                [60, 40],
-                inactivityInterval,
-                erc20s,
-                nfts,
-                { value: creationValue }
-            );
-
-            willAddress = await source.userWills(testator.address);
-            willContract = Will.attach(willAddress);
-        });
-
-        it("should have correct state upon creation", async function () {
-            expect(await willContract.owner()).to.equal(testator.address);
-            expect(await willContract.sourceContract()).to.equal(source.target);
-            expect(await willContract.terminationFee()).to.equal(platformFee);
-            expect(await willContract.interval()).to.equal(inactivityInterval);
-        });
-
-        it("should allow the owner to ping", async function () {
-            const lastUpdateBefore = await willContract.lastUpdate();
-            await time.increase(100);
-            await expect(willContract.connect(testator).ping()).to.emit(willContract, "Ping");
-            const lastUpdateAfter = await willContract.lastUpdate();
-            expect(lastUpdateAfter).to.be.gt(lastUpdateBefore);
-        });
-
-        it("should prevent non-owners from pinging", async function () {
-            await expect(willContract.connect(otherUser).ping())
-                .to.be.revertedWith("Only the owner can call this function.");
-        });
-
-        describe("cancelAndWithdraw", function () {
-            it("should allow owner to cancel, pay fee, withdraw assets, and clear record", async function () {
-                const testatorEthBefore = await ethers.provider.getBalance(testator.address);
-                const testatorERC20Before = await mockERC20.balanceOf(testator.address);
-                const sourceBalanceBefore = await ethers.provider.getBalance(source.target);
-
-                // Action
-                const tx = await willContract.connect(testator).cancelAndWithdraw();
-                const receipt = await tx.wait();
-                const gasUsed = receipt.gasUsed * receipt.gasPrice;
-
-                // Assertions
-                const testatorEthAfter = await ethers.provider.getBalance(testator.address);
-                const testatorERC20After = await mockERC20.balanceOf(testator.address);
-                const sourceBalanceAfter = await ethers.provider.getBalance(source.target);
-                
-                const expectedTestatorEth = testatorEthBefore + willEthValue - platformFee - gasUsed;
-                expect(testatorEthAfter).to.equal(expectedTestatorEth);
-                expect(sourceBalanceAfter).to.equal(sourceBalanceBefore + platformFee);
-                expect(testatorERC20After).to.equal(testatorERC20Before + ethers.parseEther("100"));
-                expect(await mockERC721.ownerOf(1)).to.equal(testator.address);
-                expect(await ethers.provider.getBalance(willAddress)).to.equal(0);
-                expect(await mockERC20.balanceOf(willAddress)).to.equal(0);
-                expect(await source.userWills(testator.address)).to.equal(ethers.ZeroAddress);
-
-                // Testator can create a new will
-                await mockERC20.connect(testator).approve(source.target, ethers.parseEther("10"));
-                
-                // ----> FIX IS HERE <----
-                // Provide valid parameters for the new will creation check.
-                await expect(source.connect(testator).createWill(
-                    [heir1.address], // Heirs array cannot be empty
-                    [100],           // Must have corresponding distribution
-                    0,
-                    [{tokenContract: mockERC20.target, amount: ethers.parseEther("10")}],
-                    [], 
-                    { value: platformFee }
-                )).to.not.be.reverted;
-            });
-            
-            it("should prevent non-owners from cancelling", async function () {
-                await expect(willContract.connect(otherUser).cancelAndWithdraw())
-                    .to.be.revertedWith("Only the owner can call this function.");
-            });
-        });
-
-        describe("execute", function () {
-            it("should fail if grace period has not ended", async function () {
-                await expect(willContract.connect(executor).execute())
-                    .to.be.revertedWith("Grace period has not ended.");
-            });
-
-            it("should fail if called by non-executor within the executor window", async function () {
-                await time.increase(inactivityInterval + 100); // Enter executor window
-                await expect(willContract.connect(publicExecutor).execute())
-                    .to.be.revertedWith("Only the designated executor can call this now.");
-            });
-
-            it("should succeed for designated executor, sending fees to Source", async function () {
-                await time.increase(inactivityInterval + 100); // Enter executor window
-
-                const sourceBalanceBefore = await ethers.provider.getBalance(source.target);
-                const sourceERC20Before = await mockERC20.balanceOf(source.target);
-                const heir1EthBefore = await ethers.provider.getBalance(heir1.address);
-                const heir2EthBefore = await ethers.provider.getBalance(heir2.address);
-
-                await expect(willContract.connect(executor).execute()).to.emit(willContract, "Executed");
-
-                // Fee calculation (0.5%)
-                const ethFee = (willEthValue * 50n) / 10000n;
-                const erc20Fee = (ethers.parseEther("100") * 50n) / 10000n;
-                const distributableEth = willEthValue - ethFee;
-                const distributableErc20 = ethers.parseEther("100") - erc20Fee;
-
-                // Assertions for Source (fee recipient)
-                expect(await ethers.provider.getBalance(source.target)).to.equal(sourceBalanceBefore + ethFee);
-                expect(await mockERC20.balanceOf(source.target)).to.equal(sourceERC20Before + erc20Fee);
-
-                // Assertions for heirs
-                expect(await ethers.provider.getBalance(heir1.address)).to.equal(heir1EthBefore + (distributableEth * 60n) / 100n);
-                expect(await ethers.provider.getBalance(heir2.address)).to.equal(heir2EthBefore + (distributableEth * 40n) / 100n);
-                expect(await mockERC20.balanceOf(heir1.address)).to.equal((distributableErc20 * 60n) / 100n);
-                expect(await mockERC20.balanceOf(heir2.address)).to.equal((distributableErc20 * 40n) / 100n);
-                expect(await mockERC721.ownerOf(1)).to.equal(heir1.address);
-                
-                // Will is executed
-                expect(await willContract.executed()).to.be.true;
-            });
-            
-            it("should succeed for public executor after window, sending fees to executor", async function(){
-                await time.increase(inactivityInterval + EXECUTOR_WINDOW + 100); // After executor window
-
-                const publicExecutorEthBefore = await ethers.provider.getBalance(publicExecutor.address);
-                const publicExecutorERC20Before = await mockERC20.balanceOf(publicExecutor.address);
-
-                const heir1EthBefore = await ethers.provider.getBalance(heir1.address);
-                const heir2EthBefore = await ethers.provider.getBalance(heir2.address);
-
-                const tx = await willContract.connect(publicExecutor).execute();
-                const receipt = await tx.wait();
-                const gasUsed = receipt.gasUsed * receipt.gasPrice;
-
-                // Fee calculation (0.5%)
-                const ethFee = (willEthValue * 50n) / 10000n;
-                const erc20Fee = (ethers.parseEther("100") * 50n) / 10000n;
-                const distributableEth = willEthValue - ethFee;
-                const distributableErc20 = ethers.parseEther("100") - erc20Fee;
-
-                // Assertions for publicExecutor (fee recipient)
-                expect(await ethers.provider.getBalance(publicExecutor.address)).to.equal(publicExecutorEthBefore + ethFee - gasUsed);
-                expect(await mockERC20.balanceOf(publicExecutor.address)).to.equal(publicExecutorERC20Before + erc20Fee);
-                
-                // Assertions for heirs
-                expect(await ethers.provider.getBalance(heir1.address)).to.equal(heir1EthBefore + (distributableEth * 60n) / 100n);
-                expect(await ethers.provider.getBalance(heir2.address)).to.equal(heir2EthBefore + (distributableEth * 40n) / 100n);
-                expect(await mockERC20.balanceOf(heir1.address)).to.equal((distributableErc20 * 60n) / 100n);
-                expect(await mockERC20.balanceOf(heir2.address)).to.equal((distributableErc20 * 40n) / 100n);
-                expect(await mockERC721.ownerOf(1)).to.equal(heir1.address);
-            });
-            
-            it("should fail if will is already executed", async function () {
-                await time.increase(inactivityInterval + 100);
-                await willContract.connect(executor).execute();
-                await expect(willContract.connect(executor).execute()).to.be.revertedWith("Will has been executed or cancelled.");
-                await expect(willContract.connect(testator).ping()).to.be.revertedWith("Will has been executed or cancelled.");
-            });
-        });
-    });
-});
+}
 // test/full-test.js

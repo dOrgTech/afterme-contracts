@@ -1,6 +1,6 @@
 {
 	"compiler": {
-		"version": "0.8.30+commit.73712a01"
+		"version": "0.8.24+commit.e11b9ed9"
 	},
 	"language": "Solidity",
 	"output": {
@@ -90,10 +90,29 @@
 						"internalType": "address",
 						"name": "willAddress",
 						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "bool",
+						"name": "hasDiary",
+						"type": "bool"
 					}
 				],
 				"name": "WillCreated",
 				"type": "event"
+			},
+			{
+				"inputs": [],
+				"name": "basePlatformFee",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
 			},
 			{
 				"inputs": [
@@ -138,7 +157,7 @@
 								"type": "uint256"
 							}
 						],
-						"internalType": "struct Source.Erc20Distribution[]",
+						"internalType": "struct Will.Erc20Distribution[]",
 						"name": "erc20s",
 						"type": "tuple[]"
 					},
@@ -160,14 +179,32 @@
 								"type": "address"
 							}
 						],
-						"internalType": "struct Source.NftDistribution[]",
+						"internalType": "struct Will.NftDistribution[]",
 						"name": "nfts",
 						"type": "tuple[]"
+					},
+					{
+						"internalType": "bool",
+						"name": "_hasDiary",
+						"type": "bool"
 					}
 				],
 				"name": "createWill",
 				"outputs": [],
 				"stateMutability": "payable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "diaryPlatformFee",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -178,19 +215,6 @@
 						"internalType": "address",
 						"name": "",
 						"type": "address"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "platformFee",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
 					}
 				],
 				"stateMutability": "view",
@@ -211,7 +235,20 @@
 						"type": "uint256"
 					}
 				],
-				"name": "setPlatformFee",
+				"name": "setBasePlatformFee",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_newFee",
+						"type": "uint256"
+					}
+				],
+				"name": "setDiaryPlatformFee",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -261,7 +298,6 @@
 			}
 		],
 		"devdoc": {
-			"details": "This contract should be owned by the dApp administrator. The user must approve this contract to spend their tokens (ERC20, ERC721) BEFORE calling createWill.",
 			"errors": {
 				"OwnableInvalidOwner(address)": [
 					{
@@ -276,38 +312,11 @@
 			},
 			"kind": "dev",
 			"methods": {
-				"clearWillRecord(address)": {
-					"details": "This function should only be callable by a Will contract created by this factory.",
-					"params": {
-						"_user": "The owner of the will being cleared."
-					}
-				},
-				"constructor": {
-					"details": "Sets the initial owner and default platform fee.",
-					"params": {
-						"_initialOwner": "The address of the contract administrator."
-					}
-				},
-				"createWill(address[],uint256[],uint256,(address,uint256)[],(address,uint256,address)[])": {
-					"details": "The sender must send ETH equal to the will's value + the platformFee. The sender MUST approve this contract to manage the specified amounts of ERC20s and the specific NFTs before calling this function.",
-					"params": {
-						"distribution": "An array of percentages for fungible asset distribution.",
-						"erc20s": "A list of ERC20 tokens and the total amount of each to include in the will.",
-						"heirs": "An array of heir addresses for fungible asset distribution.",
-						"interval": "The inactivity interval in seconds.",
-						"nfts": "A list of specific NFTs to include in the will and their designated heirs."
-					}
-				},
 				"owner()": {
 					"details": "Returns the address of the current owner."
 				},
 				"renounceOwnership()": {
 					"details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner."
-				},
-				"setPlatformFee(uint256)": {
-					"params": {
-						"_newFee": "The new fee in wei."
-					}
 				},
 				"transferOwnership(address)": {
 					"details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
@@ -318,27 +327,8 @@
 		},
 		"userdoc": {
 			"kind": "user",
-			"methods": {
-				"clearWillRecord(address)": {
-					"notice": "Allows a Will contract to clear its record from the factory upon cancellation."
-				},
-				"createWill(address[],uint256[],uint256,(address,uint256)[],(address,uint256,address)[])": {
-					"notice": "Creates a new Will contract for the sender."
-				},
-				"platformFee()": {
-					"notice": "The ETH fee charged by the platform to create a will."
-				},
-				"setPlatformFee(uint256)": {
-					"notice": "Updates the platform fee required to create a will."
-				},
-				"userWills(address)": {
-					"notice": "A mapping from a user's address to their created Will contract."
-				},
-				"withdrawFees()": {
-					"notice": "Allows the owner to withdraw accumulated platform fees."
-				}
-			},
-			"notice": "A factory contract for creating individual 'Will' contracts. It manages platform settings and fees.",
+			"methods": {},
+			"notice": "A factory contract for creating individual 'Will' contracts.",
 			"version": 1
 		}
 	},
@@ -346,13 +336,13 @@
 		"compilationTarget": {
 			"Source.sol": "Source"
 		},
-		"evmVersion": "prague",
+		"evmVersion": "shanghai",
 		"libraries": {},
 		"metadata": {
 			"bytecodeHash": "ipfs"
 		},
 		"optimizer": {
-			"enabled": false,
+			"enabled": true,
 			"runs": 200
 		},
 		"remappings": []
@@ -367,19 +357,19 @@
 			]
 		},
 		"@openzeppelin/contracts/token/ERC20/IERC20.sol": {
-			"keccak256": "0xe06a3f08a987af6ad2e1c1e774405d4fe08f1694b67517438b467cecf0da0ef7",
+			"keccak256": "0x74ed01eb66b923d0d0cfe3be84604ac04b76482a55f9dd655e1ef4d367f95bc2",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://df6f0c459663c9858b6cba2cda1d14a7d05a985bed6d2de72bd8e78c25ee79db",
-				"dweb:/ipfs/QmeTTxZ7qVk9rjEv2R4CpCwdf8UMCcRqDNMvzNxHc3Fnn9"
+				"bzz-raw://5282825a626cfe924e504274b864a652b0023591fa66f06a067b25b51ba9b303",
+				"dweb:/ipfs/QmeCfPykghhMc81VJTrHTC7sF6CRvaA1FXVq2pJhwYp1dV"
 			]
 		},
 		"@openzeppelin/contracts/token/ERC721/IERC721.sol": {
-			"keccak256": "0x5dc63d1c6a12fe1b17793e1745877b2fcbe1964c3edfd0a482fac21ca8f18261",
+			"keccak256": "0xf78f05f3b8c9f75570e85300d7b4600d7f6f6a198449273f31d44c1641adb46f",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://6b7f97c5960a50fd1822cb298551ffc908e37b7893a68d6d08bce18a11cb0f11",
-				"dweb:/ipfs/QmQQvxBytoY1eBt3pRQDmvH2hZ2yjhs12YqVfzGm7KSURq"
+				"bzz-raw://e28b872613b45e0e801d4995aa4380be2531147bfe2d85c1d6275f1de514fba3",
+				"dweb:/ipfs/QmeeFcfShHYaS3BdgVj78nxR28ZaVUwbvr66ud8bT6kzw9"
 			]
 		},
 		"@openzeppelin/contracts/utils/Context.sol": {
@@ -391,27 +381,27 @@
 			]
 		},
 		"@openzeppelin/contracts/utils/introspection/IERC165.sol": {
-			"keccak256": "0x79796192ec90263f21b464d5bc90b777a525971d3de8232be80d9c4f9fb353b8",
+			"keccak256": "0x8891738ffe910f0cf2da09566928589bf5d63f4524dd734fd9cedbac3274dd5c",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://f6fda447a62815e8064f47eff0dd1cf58d9207ad69b5d32280f8d7ed1d1e4621",
-				"dweb:/ipfs/QmfDRc7pxfaXB2Dh9np5Uf29Na3pQ7tafRS684wd3GLjVL"
+				"bzz-raw://971f954442df5c2ef5b5ebf1eb245d7105d9fbacc7386ee5c796df1d45b21617",
+				"dweb:/ipfs/QmadRjHbkicwqwwh61raUEapaVEtaLMcYbQZWs9gUkgj3u"
 			]
 		},
 		"Source.sol": {
-			"keccak256": "0x71894e2778e283260c10f492e814a4b2fa885fec988e90f4ddb691cae9ecad05",
+			"keccak256": "0x5675220a756a4a3f8eaa7cbd2d237b2c581bf5d60ff6b27426b73aea38ffd54e",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://42af8a82f8a130f7a1ff87d242b657870c505c62201c9c02e53c30eed3272726",
-				"dweb:/ipfs/QmTGkxvcbqhbpBrx9ThjJPAdYLX8QqR7nFo5ZvDHrWw4Vg"
+				"bzz-raw://37718e8b9daf6c19a9f986b6f0f716fd9272c976ebe0fa639bc3eee6eb5929de",
+				"dweb:/ipfs/QmdPrK9Xdugg4RmndMyFcUUQRTfijxpFC1xaiJnNnoobtP"
 			]
 		},
 		"Will.sol": {
-			"keccak256": "0xfc1cb4916acefce334474d506685b3ffaafa8227f3c9ea73ab7d627dd73a49b9",
+			"keccak256": "0x01a2ddafc62897eed34b900c21d7be711a54749204957fad89f8a61bb345dbe7",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://6a7020a4aa7ef06af19fa925535fafbe8b5564e10e6fd1ca08815bc52ef5fca5",
-				"dweb:/ipfs/QmeRYMGe6YaSdPHNKF6gDZex3V4BSzFiXjkntWPQ4DLKa7"
+				"bzz-raw://3bbd74c809a454d3edc01960fe220228fdcd0c3a4560737ad22f5e069001a829",
+				"dweb:/ipfs/QmSV9863nGATbFBqV2aixnHaR8WfSegPPDF2eTPtsJBJph"
 			]
 		}
 	},

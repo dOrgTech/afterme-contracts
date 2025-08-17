@@ -2,12 +2,26 @@
 pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 // A simple mock ERC20 token for testing
 contract MockERC20 is ERC20 {
     constructor() ERC20("Mock Token", "MCK") {
-        _mint(msg.sender, 1000 * 10**18); // Give creator 1000 tokens
+        _mint(msg.sender, 1_000_000 * 10**18); // Give creator a large supply
     }
 }
 
- data:application/json;base64,eyJuYW1lIjogIkN1cmF0ZWQgWW91VHViZSBORlQgIzAiLCAiZGVzY3JpcHRpb24iOiAiQSBjdXJhdGVkLCBzZXF1ZW50aWFsbHkgbWludGVkIE5GVCBmcm9tIGEgZ3Jvd2luZyBjb2xsZWN0aW9uLiIsICJpbWFnZSI6ICJodHRwczovL2ltZy55b3V0dWJlLmNvbS92aS85ZEhWc2Q0MjFDUS9ocWRlZmF1bHQuanBnIiwgImFuaW1hdGlvbl91cmwiOiAiaHR0cHM6Ly93d3cueW91dHViZS5jb20vZW1iZWQvOWRIVnNkNDIxQ1EifQ==
+// A simple mock ERC721 (NFT) token for testing
+contract MockERC721 is ERC721 {
+    constructor() ERC721("Mock NFT", "MNFT") {}
+
+    /**
+     * @notice Allows anyone to mint a new NFT. For testing only.
+     * @param to The address to receive the new NFT.
+     * @param tokenId The ID of the new NFT.
+     */
+    function mint(address to, uint256 tokenId) public {
+        _mint(to, tokenId);
+    }
+}
+// contracts/Mocks.sol
