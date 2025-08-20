@@ -13,19 +13,9 @@
 						"type": "address"
 					},
 					{
-						"internalType": "uint256",
-						"name": "_interval",
-						"type": "uint256"
-					},
-					{
 						"internalType": "address",
 						"name": "_sourceContract",
 						"type": "address"
-					},
-					{
-						"internalType": "uint256",
-						"name": "_terminationFee",
-						"type": "uint256"
 					},
 					{
 						"internalType": "bool",
@@ -70,14 +60,7 @@
 			},
 			{
 				"anonymous": false,
-				"inputs": [
-					{
-						"indexed": false,
-						"internalType": "uint256",
-						"name": "feePaid",
-						"type": "uint256"
-					}
-				],
+				"inputs": [],
 				"name": "Cancelled",
 				"type": "event"
 			},
@@ -294,6 +277,11 @@
 			{
 				"inputs": [
 					{
+						"internalType": "uint256",
+						"name": "_interval",
+						"type": "uint256"
+					},
+					{
 						"internalType": "address[]",
 						"name": "_heirs",
 						"type": "address[]"
@@ -477,6 +465,11 @@
 			{
 				"inputs": [
 					{
+						"internalType": "uint256",
+						"name": "_interval",
+						"type": "uint256"
+					},
+					{
 						"internalType": "address[]",
 						"name": "_heirs",
 						"type": "address[]"
@@ -598,19 +591,6 @@
 				"type": "function"
 			},
 			{
-				"inputs": [],
-				"name": "terminationFee",
-				"outputs": [
-					{
-						"internalType": "uint256",
-						"name": "",
-						"type": "uint256"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
 				"inputs": [
 					{
 						"internalType": "address",
@@ -714,11 +694,11 @@
 			]
 		},
 		"Will.sol": {
-			"keccak256": "0x2caebcfa74ffc373a5ffab5969bbaf73cbe346b0eaa148782457be2844c9cef3",
+			"keccak256": "0xf6275caa89f89c717129c89bb2d2021be9a061bd3dcfe16e2f82671e63640a83",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://429e26677a97b2fdbff8a1ac225c4f0367b36fbaf3143ecfbb72d38d71b99823",
-				"dweb:/ipfs/QmeUAydufsrz3t2AZcsZJAfufZkPNHxe6jGpmZxzCYDGKR"
+				"bzz-raw://7a0e55dfb0929abb1d37e43692b0fde3339aed71173339e367c442486cf31721",
+				"dweb:/ipfs/QmUkwSQKn9iX85UJmqxsvgXR1SA6WWf5q3JzNrRxgCxxoX"
 			]
 		},
 		"interfaces/ISource.sol": {

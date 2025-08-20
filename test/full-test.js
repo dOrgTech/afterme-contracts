@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 
 describe("Full AfterMe dApp Test Suite (Final)", function () {
-    this.timeout(60000); // 60 seconds timeout for the entire suite
+    this.timeout(60000);
 
     let Source, Will, MockERC20, MockERC721;
     let source, mockERC20, mockERC721;
@@ -57,7 +57,7 @@ describe("Full AfterMe dApp Test Suite (Final)", function () {
 
         it("should correctly withdraw and split fees", async function () {
             const feePayer = otherUser;
-            await source.connect(feePayer).createWillDiary(inactivityInterval, { value: diaryPlatformFee });
+            await source.connect(feePayer).createWillDiary({ value: diaryPlatformFee });
 
             const shareForOne = (diaryPlatformFee * 90n) / 100n;
             const shareForTwo = diaryPlatformFee - shareForOne;
@@ -75,11 +75,16 @@ describe("Full AfterMe dApp Test Suite (Final)", function () {
             const erc20s = [{ tokenContract: await mockERC20.getAddress(), amount: ethers.parseEther("200") }];
             const nfts = [{ tokenContract: await mockERC721.getAddress(), tokenId: 3, heir: heir1.address }];
             const sourceAddress = await source.getAddress();
+
+            // --- FIX IS HERE: Define the `heirs` variable ---
+            const heirs = [heir1.address, heir2.address];
+            const distribution = [70, 30];
+
             await mockERC20.connect(testator).approve(sourceAddress, ethers.parseEther("200"));
             await mockERC721.connect(testator).approve(sourceAddress, 3);
 
             await expect(source.connect(testator).createWill(
-                [heir1.address, heir2.address], [70, 30], inactivityInterval, erc20s, nfts, { value: willEthValue }
+                inactivityInterval, heirs, distribution, erc20s, nfts, { value: willEthValue }
             )).to.not.be.reverted;
 
             const willAddress = await source.userWills(testator.address);
@@ -94,9 +99,9 @@ describe("Full AfterMe dApp Test Suite (Final)", function () {
 
     describe("Editable Diary Will Lifecycle", function () {
         it("should follow the full lifecycle: create -> fund -> empty -> re-fund -> execute", async function () {
-            // --- Step 1: Create an empty will ---
+            
             console.log("      Step 1: Creating an empty will...");
-            await expect(source.connect(testatorDiary).createWillDiary(inactivityInterval, { value: diaryPlatformFee })).to.not.be.reverted;
+            await expect(source.connect(testatorDiary).createWillDiary({ value: diaryPlatformFee })).to.not.be.reverted;
             
             const willAddress = await source.userWills(testatorDiary.address);
             const willContract = Will.attach(willAddress);
@@ -104,7 +109,6 @@ describe("Full AfterMe dApp Test Suite (Final)", function () {
             expect(willAddress).to.not.equal(ethers.ZeroAddress);
             expect(await willContract.currentState()).to.equal(0); // Empty
 
-            // --- Step 2: Fund and configure the will ---
             console.log("      Step 2: Funding and configuring the will...");
             const willEthValue1 = ethers.parseEther("1.0");
             const erc20s1 = [{ tokenContract: await mockERC20.getAddress(), amount: ethers.parseEther("100") }];
@@ -116,15 +120,13 @@ describe("Full AfterMe dApp Test Suite (Final)", function () {
             await mockERC20.connect(testatorDiary).approve(willAddress, ethers.parseEther("100"));
             await mockERC721.connect(testatorDiary).approve(willAddress, 1);
 
-            await expect(willContract.connect(testatorDiary).fundAndConfigure([heir1.address], [100], erc20s1, nfts1, { value: willEthValue1 })).to.not.be.reverted;
+            await expect(willContract.connect(testatorDiary).fundAndConfigure(inactivityInterval, [heir1.address], [100], erc20s1, nfts1, { value: willEthValue1 })).to.not.be.reverted;
             expect(await willContract.currentState()).to.equal(1);
 
-            // --- Step 3: Empty the will for an edit ---
             console.log("      Step 3: Emptying the will for an edit...");
             await expect(willContract.connect(testatorDiary).emptyWillForEdit()).to.not.be.reverted;
             expect(await willContract.currentState()).to.equal(0);
         
-            // --- Step 4: Re-fund with a new configuration ---
             console.log("      Step 4: Re-funding with a new configuration...");
             const willEthValue2 = ethers.parseEther("0.5");
             const erc20Value2 = ethers.parseEther("50");
@@ -136,10 +138,9 @@ describe("Full AfterMe dApp Test Suite (Final)", function () {
             await mockERC20.connect(testatorDiary).approve(willAddress, erc20Value2);
             await mockERC721.connect(testatorDiary).approve(willAddress, 2);
 
-            await expect(willContract.connect(testatorDiary).fundAndConfigure([heir1.address, heir2.address], [20, 80], erc20s2, nfts2, { value: willEthValue2 })).to.not.be.reverted;
+            await expect(willContract.connect(testatorDiary).fundAndConfigure(inactivityInterval, [heir1.address, heir2.address], [20, 80], erc20s2, nfts2, { value: willEthValue2 })).to.not.be.reverted;
             expect(await willContract.currentState()).to.equal(1);
 
-            // --- Step 5: Execute the will and VERIFY BALANCES ---
             console.log("      Step 5: Executing the will and verifying distribution...");
             await time.increase(inactivityInterval + 100);
 
@@ -168,22 +169,20 @@ describe("Full AfterMe dApp Test Suite (Final)", function () {
 
             const executorTxCost = executeReceipt.gasUsed * executeReceipt.gasPrice;
 
-            // Assertions for Heirs
             expect(await ethers.provider.getBalance(heir1.address)).to.equal(heir1EthBefore + heir1EthShare);
             expect(await ethers.provider.getBalance(heir2.address)).to.equal(heir2EthBefore + heir2EthShare);
             expect(await mockERC20.balanceOf(heir1.address)).to.equal(heir1Erc20Before + heir1Erc20Share);
             expect(await mockERC20.balanceOf(heir2.address)).to.equal(heir2Erc20Before + heir2Erc20Share);
             expect(await mockERC721.ownerOf(2)).to.equal(heir2.address);
             
-            // Assertions for Fee Recipient (Source Contract) and Executor
             expect(await ethers.provider.getBalance(await source.getAddress())).to.equal(sourceEthBefore + ethFee);
             expect(await mockERC20.balanceOf(await source.getAddress())).to.equal(sourceErc20Before + erc20Fee);
             expect(await ethers.provider.getBalance(executorSigner.address)).to.equal(executorEthBefore - executorTxCost);
             
-            // Final state assertions
             expect(await ethers.provider.getBalance(willAddress)).to.equal(0);
             expect(await mockERC20.balanceOf(willAddress)).to.equal(0);
             expect(await willContract.currentState()).to.equal(2);
         });
     });
 });
+// test/full-test.js

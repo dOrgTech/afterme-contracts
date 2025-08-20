@@ -98,9 +98,9 @@ contract Source {
     }
 
     function createWill(
+        uint256 interval,
         address[] memory heirs,
         uint256[] memory distribution,
-        uint256 interval,
         Will.Erc20Distribution[] calldata erc20s,
         Will.NftDistribution[] calldata nfts
     ) external payable {
@@ -108,13 +108,11 @@ contract Source {
         require(userWills[msg.sender] == address(0), "User already has an existing will.");
         uint256 willValue = msg.value - basePlatformFee;
         
-        // Step 1: Deploy the Will contract, forwarding the ETH for the inheritance
         Will newWill = new Will{value: willValue}(
-            msg.sender, interval, address(this), basePlatformFee, false, executorAddress
+            msg.sender, address(this), false, executorAddress
         );
         userWills[msg.sender] = address(newWill);
 
-        // Step 2: Transfer assets from user to the new Will contract
         for (uint i = 0; i < erc20s.length; i++) {
             if (erc20s[i].amount > 0) {
                 IERC20(erc20s[i].tokenContract).transferFrom(msg.sender, address(newWill), erc20s[i].amount);
@@ -124,18 +122,17 @@ contract Source {
             IERC721(nfts[i].tokenContract).transferFrom(msg.sender, address(newWill), nfts[i].tokenId);
         }
         
-        // Step 3: Call the initializer on the now-funded Will contract. This call sends no ETH.
-        newWill.initialize(heirs, distribution, erc20s, nfts);
+        newWill.initialize(interval, heirs, distribution, erc20s, nfts);
 
         emit WillCreated(msg.sender, address(newWill), false);
     }
 
-    function createWillDiary(uint256 interval) external payable {
+    function createWillDiary() external payable {
         require(msg.value == diaryPlatformFee, "Msg.value must exactly cover the diary fee.");
         require(userWills[msg.sender] == address(0), "User already has an existing will.");
         
         Will newWill = new Will(
-            msg.sender, interval, address(this), diaryPlatformFee, true, executorAddress
+            msg.sender, address(this), true, executorAddress
         );
         userWills[msg.sender] = address(newWill);
         
@@ -145,7 +142,7 @@ contract Source {
     function clearWillRecord(address _user) external {
         address willAddress = userWills[_user];
         require(willAddress != address(0), "No will found for this user.");
-        require(msg.sender == willAddress, "Caller is not the registered will.");
+        require(msg.sender == willAddress || msg.sender == _user, "Caller should be the user or their registered will.");
         delete userWills[_user];
         emit WillCleared(_user, willAddress);
     }

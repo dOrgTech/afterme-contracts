@@ -51,9 +51,8 @@ contract Will is Ownable, ReentrancyGuard {
     uint256 public constant EXECUTION_FEE_BPS = 50;
 
     uint256 public lastUpdate;
-    uint256 public immutable interval;
+    uint256 public interval; // No longer immutable
     address public immutable sourceContract;
-    uint256 public immutable terminationFee;
     bool public immutable hasDiary;
     address public immutable executorAddress;
     address[] public heirs;
@@ -63,7 +62,7 @@ contract Will is Ownable, ReentrancyGuard {
 
     event Ping(uint256 newLastUpdate);
     event Executed(address executor, uint256 ethFee, address feeRecipient);
-    event Cancelled(uint256 feePaid);
+    event Cancelled(); // No longer has feePaid
     event WillConfigured(address indexed owner);
     event WillEmptied(address indexed owner);
 
@@ -74,27 +73,25 @@ contract Will is Ownable, ReentrancyGuard {
 
     constructor(
         address initialOwner,
-        uint256 _interval,
         address _sourceContract,
-        uint256 _terminationFee,
         bool _hasDiary,
         address _executorAddress
     ) payable Ownable(initialOwner) {
-        interval = _interval;
         sourceContract = _sourceContract;
-        terminationFee = _terminationFee;
         hasDiary = _hasDiary;
         executorAddress = _executorAddress;
         currentState = WillState.Empty;
     }
     
     function initialize(
+        uint256 _interval,
         address[] memory _heirs,
         uint256[] memory _distro,
         Erc20Distribution[] calldata _erc20s,
         NftDistribution[] calldata _nfts
     ) external requiresState(WillState.Empty) {
         require(msg.sender == sourceContract, "Will: Not authorized by factory");
+        interval = _interval;
         _configure(_heirs, _distro, _erc20s, _nfts);
         currentState = WillState.Active;
         lastUpdate = block.timestamp;
@@ -102,11 +99,13 @@ contract Will is Ownable, ReentrancyGuard {
     }
     
     function fundAndConfigure(
+        uint256 _interval,
         address[] memory _heirs,
         uint256[] memory _distro,
         Erc20Distribution[] calldata _erc20s,
         NftDistribution[] calldata _nfts
     ) external payable onlyOwner requiresState(WillState.Empty) {
+        interval = _interval;
         for (uint i = 0; i < _erc20s.length; i++) {
             if (_erc20s[i].amount > 0) {
                 IERC20(_erc20s[i].tokenContract).transferFrom(msg.sender, address(this), _erc20s[i].amount);
@@ -127,21 +126,16 @@ contract Will is Ownable, ReentrancyGuard {
         delete distributionPercentages;
         delete erc20Assets;
         delete erc721Assets;
+        interval = 0; // Reset interval
         currentState = WillState.Empty;
         emit WillEmptied(owner());
     }
 
     function cancelAndWithdraw() external onlyOwner requiresState(WillState.Active) nonReentrant {
-        uint256 balanceBeforeReturn = address(this).balance;
         _returnAllAssets();
-        if (terminationFee > 0) {
-            require(balanceBeforeReturn >= terminationFee, "Insufficient ETH for fee");
-            (bool success, ) = sourceContract.call{value: terminationFee}("");
-            require(success, "Termination fee transfer failed.");
-        }
         ISource(sourceContract).clearWillRecord(owner());
         currentState = WillState.Executed;
-        emit Cancelled(terminationFee);
+        emit Cancelled();
     }
     
     function ping() external onlyOwner requiresState(WillState.Active) {
