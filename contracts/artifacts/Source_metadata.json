@@ -9,7 +9,27 @@
 				"inputs": [
 					{
 						"internalType": "address",
-						"name": "_initialOwner",
+						"name": "_coFounderOnePrimary",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_coFounderOneSecondary",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_coFounderTwoPrimary",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_coFounderTwoSecondary",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_initialExecutor",
 						"type": "address"
 					}
 				],
@@ -17,26 +37,29 @@
 				"type": "constructor"
 			},
 			{
+				"anonymous": false,
 				"inputs": [
 					{
+						"indexed": true,
+						"internalType": "uint8",
+						"name": "coFounderId",
+						"type": "uint8"
+					},
+					{
+						"indexed": false,
 						"internalType": "address",
-						"name": "owner",
+						"name": "newPrimary",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "address",
+						"name": "newSecondary",
 						"type": "address"
 					}
 				],
-				"name": "OwnableInvalidOwner",
-				"type": "error"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "address",
-						"name": "account",
-						"type": "address"
-					}
-				],
-				"name": "OwnableUnauthorizedAccount",
-				"type": "error"
+				"name": "CoFounderAddressesUpdated",
+				"type": "event"
 			},
 			{
 				"anonymous": false,
@@ -44,17 +67,36 @@
 					{
 						"indexed": true,
 						"internalType": "address",
-						"name": "previousOwner",
-						"type": "address"
-					},
-					{
-						"indexed": true,
-						"internalType": "address",
-						"name": "newOwner",
+						"name": "newExecutor",
 						"type": "address"
 					}
 				],
-				"name": "OwnershipTransferred",
+				"name": "ExecutorAddressUpdated",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "caller",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "amountForCoFounderOne",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "amountForCoFounderTwo",
+						"type": "uint256"
+					}
+				],
+				"name": "FeesWithdrawn",
 				"type": "event"
 			},
 			{
@@ -125,6 +167,42 @@
 				"name": "clearWillRecord",
 				"outputs": [],
 				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "coFounderOne",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "primary",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "secondary",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "coFounderTwo",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "primary",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "secondary",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
 				"type": "function"
 			},
 			{
@@ -209,7 +287,7 @@
 			},
 			{
 				"inputs": [],
-				"name": "owner",
+				"name": "executorAddress",
 				"outputs": [
 					{
 						"internalType": "address",
@@ -218,26 +296,6 @@
 					}
 				],
 				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
-				"name": "renounceOwnership",
-				"outputs": [],
-				"stateMutability": "nonpayable",
-				"type": "function"
-			},
-			{
-				"inputs": [
-					{
-						"internalType": "uint256",
-						"name": "_newFee",
-						"type": "uint256"
-					}
-				],
-				"name": "setBasePlatformFee",
-				"outputs": [],
-				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
@@ -257,11 +315,47 @@
 				"inputs": [
 					{
 						"internalType": "address",
-						"name": "newOwner",
+						"name": "_newExecutor",
 						"type": "address"
 					}
 				],
-				"name": "transferOwnership",
+				"name": "setExecutorAddress",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_newPrimary",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_newSecondary",
+						"type": "address"
+					}
+				],
+				"name": "updateCoFounderOneAddresses",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_newPrimary",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_newSecondary",
+						"type": "address"
+					}
+				],
+				"name": "updateCoFounderTwoAddresses",
 				"outputs": [],
 				"stateMutability": "nonpayable",
 				"type": "function"
@@ -298,37 +392,15 @@
 			}
 		],
 		"devdoc": {
-			"errors": {
-				"OwnableInvalidOwner(address)": [
-					{
-						"details": "The owner is not a valid owner account. (eg. `address(0)`)"
-					}
-				],
-				"OwnableUnauthorizedAccount(address)": [
-					{
-						"details": "The caller account is not authorized to perform an operation."
-					}
-				]
-			},
 			"kind": "dev",
-			"methods": {
-				"owner()": {
-					"details": "Returns the address of the current owner."
-				},
-				"renounceOwnership()": {
-					"details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner."
-				},
-				"transferOwnership(address)": {
-					"details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
-				}
-			},
+			"methods": {},
 			"title": "Source (Estate Planning Factory)",
 			"version": 1
 		},
 		"userdoc": {
 			"kind": "user",
 			"methods": {},
-			"notice": "A factory contract for creating individual 'Will' contracts.",
+			"notice": "A factory contract for creating individual 'Will' contracts with co-founder governance.",
 			"version": 1
 		}
 	},
@@ -389,19 +461,19 @@
 			]
 		},
 		"Source.sol": {
-			"keccak256": "0x5675220a756a4a3f8eaa7cbd2d237b2c581bf5d60ff6b27426b73aea38ffd54e",
+			"keccak256": "0x42bdf0049099cd0bcb5d9e2a3abd10d94ab05d7421671b93343b43e8948f2864",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://37718e8b9daf6c19a9f986b6f0f716fd9272c976ebe0fa639bc3eee6eb5929de",
-				"dweb:/ipfs/QmdPrK9Xdugg4RmndMyFcUUQRTfijxpFC1xaiJnNnoobtP"
+				"bzz-raw://9a627fc84a88534d47410826155dee7941da7e8a0ac40703c192fa2fa4d9145d",
+				"dweb:/ipfs/Qmb2dnJ3Dx8kinHRjV9iAfwCzBy1puSBaLsbEd9K4g6zPR"
 			]
 		},
 		"Will.sol": {
-			"keccak256": "0x01a2ddafc62897eed34b900c21d7be711a54749204957fad89f8a61bb345dbe7",
+			"keccak256": "0xac34152e0b9d207281ba0fe33cf75a9d3821d5e542934dfe1c4ca16a95141fa0",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://3bbd74c809a454d3edc01960fe220228fdcd0c3a4560737ad22f5e069001a829",
-				"dweb:/ipfs/QmSV9863nGATbFBqV2aixnHaR8WfSegPPDF2eTPtsJBJph"
+				"bzz-raw://a859a55bf1cbe215c0e4b0feb50e4e719a67a3c95c10764ddd91231fa728af75",
+				"dweb:/ipfs/QmfJerDPnEm5B6ofgJJKBGwhD6CK6DYMozyYxJZnaJucsj"
 			]
 		}
 	},

@@ -57,7 +57,6 @@ contract Will is Ownable, ReentrancyGuard {
     
     // --- Constants ---
     uint256 private constant EXECUTOR_WINDOW = 1 days;
-    address private constant EXECUTOR_ADDRESS = 0xa9F8F9C0bf3188cEDdb9684ae28655187552bAE9;
     uint256 public constant EXECUTION_FEE_BPS = 50;
 
     // --- State Variables ---
@@ -67,6 +66,7 @@ contract Will is Ownable, ReentrancyGuard {
     address public immutable sourceContract;
     uint256 public immutable terminationFee;
     bool public immutable hasDiary;
+    address public immutable executorAddress; // This will be set on creation
     address[] public heirs;
     uint256[] public distributionPercentages;
     Erc20Asset[] public erc20Assets;
@@ -90,7 +90,7 @@ contract Will is Ownable, ReentrancyGuard {
         require(block.timestamp >= gracePeriodEnd, "Grace period has not ended.");
         uint256 executorPeriodEnd = gracePeriodEnd + EXECUTOR_WINDOW;
         if (block.timestamp < executorPeriodEnd) {
-            require(msg.sender == EXECUTOR_ADDRESS, "Only the designated executor can call this now.");
+            require(msg.sender == executorAddress, "Only the designated executor can call this now.");
         }
         _;
     }
@@ -101,12 +101,14 @@ contract Will is Ownable, ReentrancyGuard {
         uint256 _interval,
         address _sourceContract,
         uint256 _terminationFee,
-        bool _hasDiary
+        bool _hasDiary,
+        address _executorAddress
     ) payable Ownable(initialOwner) {
         interval = _interval;
         sourceContract = _sourceContract;
         terminationFee = _terminationFee;
         hasDiary = _hasDiary;
+        executorAddress = _executorAddress;
     }
 
     // --- Initializer Function (Modified) ---
@@ -133,7 +135,6 @@ contract Will is Ownable, ReentrancyGuard {
         heirs = _heirs;
         distributionPercentages = _distro;
 
-        // Unpacking logic is now done HERE, not in the factory
         for (uint i = 0; i < _erc20s.length; i++) {
             erc20Assets.push(Erc20Asset(IERC20(_erc20s[i].tokenContract)));
         }
@@ -254,9 +255,6 @@ contract Will is Ownable, ReentrancyGuard {
             erc20Details: _erc20Details,
             erc721Details: _erc721Details
         });
-    }
-    function getContractBalance() external view returns (uint256) {
-        return address(this).balance;
     }
 }
 // contracts/Will.sol
