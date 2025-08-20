@@ -139,6 +139,32 @@
 				"type": "event"
 			},
 			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					}
+				],
+				"name": "WillConfigured",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					}
+				],
+				"name": "WillEmptied",
+				"type": "event"
+			},
+			{
 				"inputs": [],
 				"name": "EXECUTION_FEE_BPS",
 				"outputs": [
@@ -159,6 +185,19 @@
 				"type": "function"
 			},
 			{
+				"inputs": [],
+				"name": "currentState",
+				"outputs": [
+					{
+						"internalType": "enum Will.WillState",
+						"name": "",
+						"type": "uint8"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
 				"inputs": [
 					{
 						"internalType": "uint256",
@@ -175,6 +214,13 @@
 					}
 				],
 				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "emptyWillForEdit",
+				"outputs": [],
+				"stateMutability": "nonpayable",
 				"type": "function"
 			},
 			{
@@ -234,19 +280,6 @@
 			},
 			{
 				"inputs": [],
-				"name": "executed",
-				"outputs": [
-					{
-						"internalType": "bool",
-						"name": "",
-						"type": "bool"
-					}
-				],
-				"stateMutability": "view",
-				"type": "function"
-			},
-			{
-				"inputs": [],
 				"name": "executorAddress",
 				"outputs": [
 					{
@@ -256,6 +289,63 @@
 					}
 				],
 				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address[]",
+						"name": "_heirs",
+						"type": "address[]"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "_distro",
+						"type": "uint256[]"
+					},
+					{
+						"components": [
+							{
+								"internalType": "address",
+								"name": "tokenContract",
+								"type": "address"
+							},
+							{
+								"internalType": "uint256",
+								"name": "amount",
+								"type": "uint256"
+							}
+						],
+						"internalType": "struct Will.Erc20Distribution[]",
+						"name": "_erc20s",
+						"type": "tuple[]"
+					},
+					{
+						"components": [
+							{
+								"internalType": "address",
+								"name": "tokenContract",
+								"type": "address"
+							},
+							{
+								"internalType": "uint256",
+								"name": "tokenId",
+								"type": "uint256"
+							},
+							{
+								"internalType": "address",
+								"name": "heir",
+								"type": "address"
+							}
+						],
+						"internalType": "struct Will.NftDistribution[]",
+						"name": "_nfts",
+						"type": "tuple[]"
+					}
+				],
+				"name": "fundAndConfigure",
+				"outputs": [],
+				"stateMutability": "payable",
 				"type": "function"
 			},
 			{
@@ -559,13 +649,11 @@
 					"details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
 				}
 			},
-			"title": "Will",
 			"version": 1
 		},
 		"userdoc": {
 			"kind": "user",
 			"methods": {},
-			"notice": "A smart contract for an individual will or estate plan.",
 			"version": 1
 		}
 	},
@@ -626,11 +714,19 @@
 			]
 		},
 		"Will.sol": {
-			"keccak256": "0xac34152e0b9d207281ba0fe33cf75a9d3821d5e542934dfe1c4ca16a95141fa0",
+			"keccak256": "0x2caebcfa74ffc373a5ffab5969bbaf73cbe346b0eaa148782457be2844c9cef3",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://a859a55bf1cbe215c0e4b0feb50e4e719a67a3c95c10764ddd91231fa728af75",
-				"dweb:/ipfs/QmfJerDPnEm5B6ofgJJKBGwhD6CK6DYMozyYxJZnaJucsj"
+				"bzz-raw://429e26677a97b2fdbff8a1ac225c4f0367b36fbaf3143ecfbb72d38d71b99823",
+				"dweb:/ipfs/QmeUAydufsrz3t2AZcsZJAfufZkPNHxe6jGpmZxzCYDGKR"
+			]
+		},
+		"interfaces/ISource.sol": {
+			"keccak256": "0x2f5ded57926fa6cacf6312e9948b2815a3c20c8d6abfb27f0004066ea3ed2487",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://ae1526bea1aaa6916f2a58311ef2fc0384d049d2f20d65b23e3c63cbfca46737",
+				"dweb:/ipfs/QmfMdMZ1v5zor9Vqfep1PyDA2PUxs2vRMDi2yQwkkbAnmy"
 			]
 		}
 	},

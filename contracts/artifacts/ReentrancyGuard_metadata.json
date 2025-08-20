@@ -73,11 +73,19 @@
 			]
 		},
 		"Will.sol": {
-			"keccak256": "0xac34152e0b9d207281ba0fe33cf75a9d3821d5e542934dfe1c4ca16a95141fa0",
+			"keccak256": "0x2caebcfa74ffc373a5ffab5969bbaf73cbe346b0eaa148782457be2844c9cef3",
 			"license": "MIT",
 			"urls": [
-				"bzz-raw://a859a55bf1cbe215c0e4b0feb50e4e719a67a3c95c10764ddd91231fa728af75",
-				"dweb:/ipfs/QmfJerDPnEm5B6ofgJJKBGwhD6CK6DYMozyYxJZnaJucsj"
+				"bzz-raw://429e26677a97b2fdbff8a1ac225c4f0367b36fbaf3143ecfbb72d38d71b99823",
+				"dweb:/ipfs/QmeUAydufsrz3t2AZcsZJAfufZkPNHxe6jGpmZxzCYDGKR"
+			]
+		},
+		"interfaces/ISource.sol": {
+			"keccak256": "0x2f5ded57926fa6cacf6312e9948b2815a3c20c8d6abfb27f0004066ea3ed2487",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://ae1526bea1aaa6916f2a58311ef2fc0384d049d2f20d65b23e3c63cbfca46737",
+				"dweb:/ipfs/QmfMdMZ1v5zor9Vqfep1PyDA2PUxs2vRMDi2yQwkkbAnmy"
 			]
 		}
 	},

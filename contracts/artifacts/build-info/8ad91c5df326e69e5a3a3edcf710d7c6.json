@@ -1,0 +1,220 @@
+{
+	"id": "8ad91c5df326e69e5a3a3edcf710d7c6",
+	"_format": "hh-sol-build-info-1",
+	"solcVersion": "0.8.24",
+	"solcLongVersion": "0.8.24+commit.e11b9ed9",
+	"input": {
+		"language": "Solidity",
+		"sources": {
+			"ISource.sol": {
+				"content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.24;\r\n\r\n/**\r\n * @title ISource\r\n * @notice Interface for the Source factory contract.\r\n * @dev Required by the Will contract to call the clearWillRecord function.\r\n */\r\ninterface ISource {\r\n    function clearWillRecord(address _user) external;\r\n}\r\n// contracts/interfaces/ISource.sol"
+			}
+		},
+		"settings": {
+			"optimizer": {
+				"enabled": true,
+				"runs": 200
+			},
+			"outputSelection": {
+				"*": {
+					"": [
+						"ast"
+					],
+					"*": [
+						"abi",
+						"metadata",
+						"devdoc",
+						"userdoc",
+						"storageLayout",
+						"evm.legacyAssembly",
+						"evm.bytecode",
+						"evm.deployedBytecode",
+						"evm.methodIdentifiers",
+						"evm.gasEstimates",
+						"evm.assembly"
+					]
+				}
+			},
+			"remappings": []
+		}
+	},
+	"output": {
+		"contracts": {
+			"ISource.sol": {
+				"ISource": {
+					"abi": [
+						{
+							"inputs": [
+								{
+									"internalType": "address",
+									"name": "_user",
+									"type": "address"
+								}
+							],
+							"name": "clearWillRecord",
+							"outputs": [],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						}
+					],
+					"devdoc": {
+						"details": "Required by the Will contract to call the clearWillRecord function.",
+						"kind": "dev",
+						"methods": {},
+						"title": "ISource",
+						"version": 1
+					},
+					"evm": {
+						"assembly": "",
+						"bytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"deployedBytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"immutableReferences": {},
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"gasEstimates": null,
+						"legacyAssembly": null,
+						"methodIdentifiers": {
+							"clearWillRecord(address)": "a658dd6b"
+						}
+					},
+					"metadata": "{\"compiler\":{\"version\":\"0.8.24+commit.e11b9ed9\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_user\",\"type\":\"address\"}],\"name\":\"clearWillRecord\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"Required by the Will contract to call the clearWillRecord function.\",\"kind\":\"dev\",\"methods\":{},\"title\":\"ISource\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"notice\":\"Interface for the Source factory contract.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"ISource.sol\":\"ISource\"},\"evmVersion\":\"shanghai\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"ISource.sol\":{\"keccak256\":\"0x2f5ded57926fa6cacf6312e9948b2815a3c20c8d6abfb27f0004066ea3ed2487\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://ae1526bea1aaa6916f2a58311ef2fc0384d049d2f20d65b23e3c63cbfca46737\",\"dweb:/ipfs/QmfMdMZ1v5zor9Vqfep1PyDA2PUxs2vRMDi2yQwkkbAnmy\"]}},\"version\":1}",
+					"storageLayout": {
+						"storage": [],
+						"types": null
+					},
+					"userdoc": {
+						"kind": "user",
+						"methods": {},
+						"notice": "Interface for the Source factory contract.",
+						"version": 1
+					}
+				}
+			}
+		},
+		"sources": {
+			"ISource.sol": {
+				"ast": {
+					"absolutePath": "ISource.sol",
+					"exportedSymbols": {
+						"ISource": [
+							8
+						]
+					},
+					"id": 9,
+					"license": "MIT",
+					"nodeType": "SourceUnit",
+					"nodes": [
+						{
+							"id": 1,
+							"literals": [
+								"solidity",
+								"^",
+								"0.8",
+								".24"
+							],
+							"nodeType": "PragmaDirective",
+							"src": "33:24:0"
+						},
+						{
+							"abstract": false,
+							"baseContracts": [],
+							"canonicalName": "ISource",
+							"contractDependencies": [],
+							"contractKind": "interface",
+							"documentation": {
+								"id": 2,
+								"nodeType": "StructuredDocumentation",
+								"src": "61:159:0",
+								"text": " @title ISource\n @notice Interface for the Source factory contract.\n @dev Required by the Will contract to call the clearWillRecord function."
+							},
+							"fullyImplemented": false,
+							"id": 8,
+							"linearizedBaseContracts": [
+								8
+							],
+							"name": "ISource",
+							"nameLocation": "232:7:0",
+							"nodeType": "ContractDefinition",
+							"nodes": [
+								{
+									"functionSelector": "a658dd6b",
+									"id": 7,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "clearWillRecord",
+									"nameLocation": "256:15:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 5,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 4,
+												"mutability": "mutable",
+												"name": "_user",
+												"nameLocation": "280:5:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 7,
+												"src": "272:13:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 3,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "272:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "271:15:0"
+									},
+									"returnParameters": {
+										"id": 6,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "295:0:0"
+									},
+									"scope": 8,
+									"src": "247:49:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								}
+							],
+							"scope": 9,
+							"src": "222:77:0",
+							"usedErrors": [],
+							"usedEvents": []
+						}
+					],
+					"src": "33:303:0"
+				},
+				"id": 0
+			}
+		}
+	}
+}
